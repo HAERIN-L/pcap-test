@@ -146,8 +146,8 @@ int main(int argc, char* argv[]) {
       int res = pcap_next_ex(pcap, &header, &packet); 
 
 	  const u_char* packet1;
-	  packet1 = packet;
-		//packet의 시작점이 packet에 담겨있음, 여기서 +하면 점점 아래로 내려갈거임.. 아마도..  
+	  packet1 = packet; // payload 출력하려고 pakcket1 작성
+	//packet의 시작점이 packet에 담겨있음, 여기서 +하면 점점 아래로 내려갈거임.. 아마도..  
       if (res == 0) continue; 
       if (res == PCAP_ERROR || res == PCAP_ERROR_BREAK) {
          printf("pcap_next_ex return %d(%s)\n", res, pcap_geterr(pcap));
@@ -168,29 +168,30 @@ int main(int argc, char* argv[]) {
       if(ntohs(ethernet_hdr->ether_type) == 0x0800) {
          // 이더넷 타입이 0x0800인 경우 IPv4 패킷임
 		  packet += sizeof(struct libnet_ethernet_hdr); // 패킷 포인터를 이더넷 헤더 다음으로 이동시켜서 IPv4 가리키도록 함
-		  ipv4 = (struct libnet_ipv4_hdr *)packet;
+		  ipv4 = (struct libnet_ipv4_hdr *)packet; 
+	      // 구조체 캐스팅해서 ipv4 포인터에 저장
 	  
-	  printf("Source IP Address: %s\n", inet_ntoa(ipv4->ip_src));
-	  printf("Destination IP Address: %s\n", inet_ntoa(ipv4->ip_dst));
+	  printf("Source IP Address: %s\n", inet_ntoa(ipv4->ip_src)); // 출발지 출력
+	  printf("Destination IP Address: %s\n", inet_ntoa(ipv4->ip_dst)); // 도착치 줄력
 
      
      printf("TCP\n");
-     packet += sizeof(struct libnet_ipv4_hdr);
+     packet += sizeof(struct libnet_ipv4_hdr); 
      tcp = (struct libnet_tcp_hdr *)packet; // 패킷 포인터 IPv4 헤더 다음으로 이동시켜서 TCP 헤더 가리키도록 함
 
-     printf("Source Port: %d\n", ntohs(tcp->th_sport));
+     printf("Source Port: %d\n", ntohs(tcp->th_sport)); 
      printf("Destination Port: %d\n", ntohs(tcp->th_dport));
 
 
      printf("Payload:");
-     int tcp_header_length = (tcp->th_off>>4)*4;
-     int payload_offset = sizeof(struct libnet_ethernet_hdr) + sizeof(struct libnet_ipv4_hdr) + tcp_header_length;
+     int tcp_header_length = (tcp->th_off>>4)*4; // th_off 필드는 데이터 오프셋, 시프트 연산 사용해서 하위 4비트만 추출하고 *4해줌..
+     int payload_offset = sizeof(struct libnet_ethernet_hdr) + sizeof(struct libnet_ipv4_hdr) + tcp_header_length; // payload 시작위치 계산..
      //printf("%d TCP: %d\n",payload_offset, tcp_header_length);
 
 	 
-	 if(payload_offset < header->caplen){
-		 for(int i=payload_offset; i<10+payload_offset; i++){
-			 printf("%02x ", packet1[i]);
+	 if(payload_offset < header->caplen){ //패킷 총 길이보다 페이로드 시작 위치가 작은 경우만 출력
+		 for(int i=payload_offset; i<10+payload_offset; i++){ 
+			 printf("%02x ", packet1[i]); // 페이로드 뽑을때는 packet1로 뽑았음.. 끝..
 	 
 		 }
 	 }
